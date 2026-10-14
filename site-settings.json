@@ -1,5 +1,5 @@
 {
-  "network": "botMainnet",
+  "network": "botTestnet",
   "mainnetContractAddress": "",
   "testnetContractAddress": "",
   "walletConnectProjectId": "",
