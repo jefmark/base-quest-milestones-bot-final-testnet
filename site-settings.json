@@ -2,6 +2,6 @@
   "network": "botTestnet",
   "mainnetContractAddress": "",
   "testnetContractAddress": "",
-  "walletConnectProjectId": "",
+  "walletConnectProjectId": "e3cb4541e4f3fbf86ad929aa59ce6511",
   "publicAppUrl": ""
 }
