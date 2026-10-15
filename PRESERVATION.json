@@ -233,8 +233,10 @@
   },
   {
     "file": "public/pages/contact.html",
-    "sha256": "ccf80fc0a40362cdbad0d184d718e71930cf713f0c693b2f6f78a9f5a7916f8e",
-    "unchanged": true
+    "sha256": "e43559f519aab381fe67eba89dc17f5af55085e5d203023f18096267199bcd63",
+    "unchanged": false,
+    "previous_sha256": "ccf80fc0a40362cdbad0d184d718e71930cf713f0c693b2f6f78a9f5a7916f8e",
+    "reason": "Update English testnet contact page with owner-provided email and creator X account, existing project channels and the correct repository links."
   },
   {
     "file": "public/pages/dashboard.html",
