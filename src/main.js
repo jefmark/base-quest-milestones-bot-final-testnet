@@ -628,7 +628,8 @@ function updateStartButton() {
   }
   // Same page: a verified run remains usable after losing all three lives.
   if (!current?.running && current?.verifiedRun?.active && current?.retryLockedUntil
-      && current.retrySeconds <= 0 && !current.startLockedByMintableNft) {
+      && current.retrySeconds <= 0 && !current.startLockedByMintableNft
+      && current.antiCheat?.clean) {
     startBtn.disabled = true;
     startBtn.textContent = 'Resuming automatically...';
     return;
