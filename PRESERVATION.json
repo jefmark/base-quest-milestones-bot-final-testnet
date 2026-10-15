@@ -22,10 +22,10 @@
   },
   {
     "file": "src/main.js",
-    "sha256": "5074120de1b5c94e10d7290fbcacd54dc91334fd8bd7059c6371d5722816d89b",
+    "sha256": "0cb8563134a204a1c1b1f61c1f95f89f4e84d5fea2467b21e512a26b7bab333b",
     "unchanged": false,
-    "previous_sha256": "443a7a162651461b003a383bc52f4bb45425471fe9b244863a2490f46c91eced",
-    "reason": "Recover confirmed, delayed and replaced wallet transactions without duplicate submissions; preserve account-owned paused checkpoints."
+    "previous_sha256": "5074120de1b5c94e10d7290fbcacd54dc91334fd8bd7059c6371d5722816d89b",
+    "reason": "Only show automatic retry while the local run is clean; allow the existing verified restart flow after an invalidated run and expired cooldown."
   },
   {
     "file": "src/style.css",
