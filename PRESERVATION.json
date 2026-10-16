@@ -8,10 +8,10 @@
   },
   {
     "file": "src/game.js",
-    "sha256": "a51a5cb0a2694fe120e6c4d99d4e66e77061804cd52c21aff6c807623f85b443",
+    "sha256": "5235205eb55fea5f2ed36a0219dcef6c4679677edd786b1a4c03860c57f74a58",
     "unchanged": false,
-    "previous_sha256": "b2951fbf0e9c3f26f9ec4615290d9b7c40194ceca57152710e802d4425c3630b",
-    "reason": "BOT mainnet community, network, retry difficulty and presentation patch; see TEST-RESULTS.md."
+    "previous_sha256": "a51a5cb0a2694fe120e6c4d99d4e66e77061804cd52c21aff6c807623f85b443",
+    "reason": "Render shield collectibles with the embedded official BOT logo; preserve testnet gameplay, collision behavior and network configuration."
   },
   {
     "file": "src/wallet.js",
