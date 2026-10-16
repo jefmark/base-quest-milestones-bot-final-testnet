@@ -8,10 +8,10 @@
   },
   {
     "file": "src/game.js",
-    "sha256": "5235205eb55fea5f2ed36a0219dcef6c4679677edd786b1a4c03860c57f74a58",
+    "sha256": "bf0516559d0babe8eea6ea64f1d132eb8c0693bd104bbce0788b7d59be7af8c0",
     "unchanged": false,
-    "previous_sha256": "a51a5cb0a2694fe120e6c4d99d4e66e77061804cd52c21aff6c807623f85b443",
-    "reason": "Render shield collectibles with the embedded official BOT logo; preserve testnet gameplay, collision behavior and network configuration."
+    "previous_sha256": "5235205eb55fea5f2ed36a0219dcef6c4679677edd786b1a4c03860c57f74a58",
+    "reason": "Presentation only: render shield collectibles with the official BOT mark tinted fluorescent yellow; preserve all gameplay and wallet logic."
   },
   {
     "file": "src/wallet.js",
