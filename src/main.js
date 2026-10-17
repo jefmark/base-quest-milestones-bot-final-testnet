@@ -22,8 +22,8 @@ import {
 function installBrowserIdentity() {
   document.title = 'Base Quest Milestones';
 
-  // Use the cropped runner emblem; refresh cached browser tab icons.
-  const dataUrl = `${import.meta.env.BASE_URL || '/'}favicon.svg?v=faacf8609cdd`;
+  // Use the simplified runner logo; refresh cached browser tab icons.
+  const dataUrl = `${import.meta.env.BASE_URL || '/'}favicon.svg?v=fcec26aad9f3`;
 
   let icon = document.querySelector('link[rel="icon"]');
   if (!icon) {
