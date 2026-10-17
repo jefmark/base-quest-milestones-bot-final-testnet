@@ -36,8 +36,10 @@
   },
   {
     "file": "public/favicon.svg",
-    "sha256": "6b89e7df3e514641e4280af66b88d385d2827983cde8fe801924a3d8ff86f002",
-    "unchanged": true
+    "sha256": "6670adc12994156a4d59de98c2b8992a5badab6f9b98365e3b1a87d8317d6b9b",
+    "unchanged": false,
+    "previous_sha256": "6b89e7df3e514641e4280af66b88d385d2827983cde8fe801924a3d8ff86f002",
+    "reason": "Use the owner-provided Base Quest Milestones logo as the browser tab icon; embedded original PNG, no gameplay or contract changes."
   },
   {
     "file": "public/metadata/1.json",
