@@ -1190,6 +1190,70 @@ function walletConnectMetadata() {
   };
 }
 
+// WalletConnect may route even read-only RPC calls to the mobile wallet when
+// those methods appear in its approved namespace. Keep polling off the wallet
+// transport so balance/receipt/contract reads cannot repeatedly open the app.
+const quietWalletConnectProviders = new WeakSet();
+function installQuietWalletConnectReads(provider) {
+  if (!provider?.request || quietWalletConnectProviders.has(provider)) return provider;
+  const walletRequest = provider.request.bind(provider);
+  const readMethods = new Set([
+    'eth_call', 'eth_getBalance', 'eth_blockNumber', 'eth_getBlockByNumber',
+    'eth_getBlockByHash', 'eth_getTransactionByHash', 'eth_getTransactionReceipt',
+    'eth_getTransactionCount', 'eth_getCode', 'eth_getLogs', 'eth_estimateGas',
+    'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_feeHistory',
+  ]);
+  let rpcId = 0;
+  let verifiedRpc = null;
+  const rpc = async (method, params) => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 12000);
+    const id = ++rpcId;
+    try {
+      const response = await fetch(CONFIG.rpcUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`Network RPC returned HTTP ${response.status}.`);
+      const body = await response.json();
+      if (body.id !== id) throw new Error('Network RPC returned a mismatched response.');
+      if (body.error) {
+        const error = new Error(body.error.message || 'Network RPC request failed.');
+        error.code = body.error.code;
+        error.data = body.error.data;
+        throw error;
+      }
+      if (!Object.prototype.hasOwnProperty.call(body, 'result')) throw new Error('Network RPC returned no result.');
+      return body.result;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  };
+  provider.request = async (args) => {
+    // Account authorization, signing and chain changes remain wallet operations.
+    if (!readMethods.has(args?.method)) return walletRequest(args);
+    const chain = Number(await walletRequest({ method: 'eth_chainId' }));
+    const accounts = provider.session?.namespaces?.eip155?.accounts || [];
+    if (chain !== TARGET_CHAIN_ID || !accounts.some(id => String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`))) {
+      throw new Error(`Approve ${CONFIG.chainName} in the wallet before reading its state.`);
+    }
+    if (!verifiedRpc) {
+      verifiedRpc = rpc('eth_chainId', []).then(value => {
+        if (Number(value) !== TARGET_CHAIN_ID) throw new Error('Configured RPC returned the wrong chain.');
+      }).catch(error => { verifiedRpc = null; throw error; });
+    }
+    await verifiedRpc;
+    const result = await rpc(args.method, args.params || []);
+    // Do not return a result from the old network after an account/network change.
+    const afterChain = Number(await walletRequest({ method: 'eth_chainId' }));
+    if (afterChain !== TARGET_CHAIN_ID) throw new Error('Wallet network changed during the read.');
+    return result;
+  };
+  quietWalletConnectProviders.add(provider);
+  return provider;
+}
+
 async function getWalletConnectProvider() {
   const projectId = walletConnectProjectId();
   if (!projectId) {
@@ -1224,7 +1288,7 @@ async function getWalletConnectProvider() {
     });
   }
 
-  return walletConnectProvider;
+  return installQuietWalletConnectReads(walletConnectProvider);
 }
 
 async function connectWithProvider(provider, label = 'Wallet', type = 'injected') {
@@ -1898,7 +1962,8 @@ async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } 
       assertCurrentConnection();
     };
     let added = false;
-    if (addFirst && walletState.connectionType !== 'walletconnect') {
+    if (addFirst && (walletState.connectionType !== 'walletconnect' ||
+        activeProvider.session?.namespaces?.eip155?.methods?.includes('wallet_addEthereumChain'))) {
       try {
         // EIP-3085 permits adding an already-known chain. Do not depend on a
         // particular wallet returning 4902 before offering BOT configuration.
@@ -1921,9 +1986,12 @@ async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } 
       });
     } catch (switchErr) {
       assertCurrentConnection();
-      // Never add a new chain to a WalletConnect session: session namespaces
-      // must already have been approved by the wallet itself.
-      if (walletState.connectionType === 'walletconnect') throw normalizeRpcError(switchErr);
+      // Target-chain session approval was checked above. Add the network only
+      // when this WalletConnect session explicitly permits the add-chain method.
+      if (walletState.connectionType === 'walletconnect' &&
+          !activeProvider.session?.namespaces?.eip155?.methods?.includes('wallet_addEthereumChain')) {
+        throw normalizeRpcError(switchErr);
+      }
       if (!isMissingChainError(switchErr)) throw normalizeRpcError(switchErr);
 
       if (added) throw normalizeRpcError(switchErr, `Network was added but switching failed.`);
