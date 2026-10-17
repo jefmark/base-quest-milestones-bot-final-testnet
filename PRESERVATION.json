@@ -15,10 +15,10 @@
   },
   {
     "file": "src/wallet.js",
-    "sha256": "029ecea912910b24ad69cc87e0fe5fa560019d64a649a4ba2fb13500b473570f",
+    "sha256": "a862132a524f5f53ab2bdeffa794a6cb89e63251d111c35227deade0c8a3ef5f",
     "unchanged": false,
-    "previous_sha256": "69d209e297b5a7ff3502ceb2d7308799763300d4473b4060d97295da7d013234",
-    "reason": "Bind asynchronous recovery reads and progression synchronization to the initiating wallet account; reject account/provider revision races."
+    "previous_sha256": "029ecea912910b24ad69cc87e0fe5fa560019d64a649a4ba2fb13500b473570f",
+    "reason": "Route WalletConnect read-only polling to the configured chain RPC; permit approved add-chain requests during explicit network setup. Signing and contract logic preserved."
   },
   {
     "file": "src/main.js",
