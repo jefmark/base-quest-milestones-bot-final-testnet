@@ -22,10 +22,10 @@
   },
   {
     "file": "src/main.js",
-    "sha256": "7d458848cf02639513d2ab19924a8e63e10879263c21a8fd657d3e55a4177ce8",
+    "sha256": "662612e3a380e604892590a21315fdea6f461ed5c3c93c8dac8943882db254ad",
     "unchanged": false,
-    "previous_sha256": "bb03dbc3cac4910a0d66b61c7e89051e019926e5a41f7c2917d95d614e0e6755",
-    "reason": "Display only the original upper runner emblem as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
+    "previous_sha256": "7d458848cf02639513d2ab19924a8e63e10879263c21a8fd657d3e55a4177ce8",
+    "reason": "Display the approved simplified runner logo as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
   },
   {
     "file": "src/style.css",
@@ -36,10 +36,10 @@
   },
   {
     "file": "public/favicon.svg",
-    "sha256": "faacf8609cdd47d07b38f885749af80472e8887afed85af09c9d2cb663f412d5",
+    "sha256": "fcec26aad9f3ea104f3f944184fc6eb019e1b1104951fdca05f74225979d436b",
     "unchanged": false,
-    "previous_sha256": "6670adc12994156a4d59de98c2b8992a5badab6f9b98365e3b1a87d8317d6b9b",
-    "reason": "Display only the original upper runner emblem as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
+    "previous_sha256": "faacf8609cdd47d07b38f885749af80472e8887afed85af09c9d2cb663f412d5",
+    "reason": "Display the approved simplified runner logo as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
   },
   {
     "file": "public/metadata/1.json",
