@@ -22,10 +22,10 @@
   },
   {
     "file": "src/main.js",
-    "sha256": "bb03dbc3cac4910a0d66b61c7e89051e019926e5a41f7c2917d95d614e0e6755",
+    "sha256": "7d458848cf02639513d2ab19924a8e63e10879263c21a8fd657d3e55a4177ce8",
     "unchanged": false,
-    "previous_sha256": "8f6c15c17d15a7d5a8b40e699fd0cbd6ad2d386891d3e50846bfada13e9d58af",
-    "reason": "Browser identity uses the owner-provided favicon artwork; no wallet, gameplay, or contract logic changes."
+    "previous_sha256": "bb03dbc3cac4910a0d66b61c7e89051e019926e5a41f7c2917d95d614e0e6755",
+    "reason": "Display only the original upper runner emblem as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
   },
   {
     "file": "src/style.css",
@@ -36,10 +36,10 @@
   },
   {
     "file": "public/favicon.svg",
-    "sha256": "6670adc12994156a4d59de98c2b8992a5badab6f9b98365e3b1a87d8317d6b9b",
-    "unchanged": true,
+    "sha256": "faacf8609cdd47d07b38f885749af80472e8887afed85af09c9d2cb663f412d5",
+    "unchanged": false,
     "previous_sha256": "6670adc12994156a4d59de98c2b8992a5badab6f9b98365e3b1a87d8317d6b9b",
-    "reason": "Browser identity uses the owner-provided favicon artwork; no wallet, gameplay, or contract logic changes."
+    "reason": "Display only the original upper runner emblem as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
   },
   {
     "file": "public/metadata/1.json",
