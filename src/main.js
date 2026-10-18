@@ -23,7 +23,7 @@ function installBrowserIdentity() {
   document.title = 'Base Quest Milestones';
 
   // Use the simplified runner logo; refresh cached browser tab icons.
-  const dataUrl = `${import.meta.env.BASE_URL || '/'}favicon.svg?v=fcec26aad9f3`;
+  const dataUrl = `${import.meta.env.BASE_URL || '/'}favicon-runner-v2.png`;
 
   let icon = document.querySelector('link[rel="icon"]');
   if (!icon) {
@@ -31,7 +31,7 @@ function installBrowserIdentity() {
     icon.rel = 'icon';
     document.head.appendChild(icon);
   }
-  icon.type = 'image/svg+xml';
+  icon.type = 'image/png';
   icon.href = dataUrl;
 
   let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
