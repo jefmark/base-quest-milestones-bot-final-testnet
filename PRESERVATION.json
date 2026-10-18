@@ -15,17 +15,17 @@
   },
   {
     "file": "src/wallet.js",
-    "sha256": "a862132a524f5f53ab2bdeffa794a6cb89e63251d111c35227deade0c8a3ef5f",
+    "sha256": "ade477c5edb415c11fe02e6c4c60257742024560ce5ff2746d6facc113a07fa0",
     "unchanged": false,
-    "previous_sha256": "029ecea912910b24ad69cc87e0fe5fa560019d64a649a4ba2fb13500b473570f",
-    "reason": "Route WalletConnect read-only polling to the configured chain RPC; permit approved add-chain requests during explicit network setup. Signing and contract logic preserved."
+    "previous_sha256": "a862132a524f5f53ab2bdeffa794a6cb89e63251d111c35227deade0c8a3ef5f",
+    "reason": "Require target-chain WalletConnect authorization and use the existing runner PNG for mobile browser icons. No contract or gameplay changes."
   },
   {
     "file": "src/main.js",
-    "sha256": "662612e3a380e604892590a21315fdea6f461ed5c3c93c8dac8943882db254ad",
+    "sha256": "887d09b1be23195422fd25a556ca418b0b8070ad6cdeadf612e1a2e21fbd7551",
     "unchanged": false,
-    "previous_sha256": "7d458848cf02639513d2ab19924a8e63e10879263c21a8fd657d3e55a4177ce8",
-    "reason": "Display the approved simplified runner logo as the browser icon; refresh its content version. Gameplay and wallet logic unchanged."
+    "previous_sha256": "662612e3a380e604892590a21315fdea6f461ed5c3c93c8dac8943882db254ad",
+    "reason": "Require target-chain WalletConnect authorization and use the existing runner PNG for mobile browser icons. No contract or gameplay changes."
   },
   {
     "file": "src/style.css",
@@ -282,8 +282,10 @@
   },
   {
     "file": "public/site.webmanifest",
-    "sha256": "a2efc5273d4b4d3c3deaf4a129fe54aee6c2cb7570bf74833d0f8903f4b83be4",
-    "unchanged": true
+    "sha256": "202d6722cf71572bb08b4b9201937cf8fefede1e454448eb7dde1d99302810f1",
+    "unchanged": false,
+    "previous_sha256": "a2efc5273d4b4d3c3deaf4a129fe54aee6c2cb7570bf74833d0f8903f4b83be4",
+    "reason": "Require target-chain WalletConnect authorization and use the existing runner PNG for mobile browser icons. No contract or gameplay changes."
   },
   {
     "file": "remix/BaseQuestMilestones.sol",
