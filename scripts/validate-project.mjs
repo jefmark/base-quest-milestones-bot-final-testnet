@@ -88,7 +88,7 @@ const rules = JSON.parse(read(source('public/progression-rules.json')));
 assert.equal(rules.stages.length,12);
 assert.equal(rules.verifiedRunRequiredForMint,true);
 assert.match(read(source('src/wallet.js')), /restoreWalletSession/);
-assert.match(read(source('src/wallet.js')), /optionalChains:\s*\[TARGET_CHAIN_ID\]/);
+assert.match(read(source('src/wallet.js')), /\bchains:\s*\[TARGET_CHAIN_ID\]/);
 assert.match(read(source('src/wallet.js')), /eth_accounts/);
 assert.match(main, /getActiveRun\(\)/);
 assert.match(main, /resumable/);
