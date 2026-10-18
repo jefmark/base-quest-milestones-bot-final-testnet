@@ -31,8 +31,8 @@ const REQUIRED_METHODS = [
   'eth_sendTransaction',
 ];
 
-// The target chain is optional in WalletConnect. All methods needed for
-// that chain must therefore also appear in optionalMethods.
+// Require the game network for a usable WalletConnect session.
+// Additional wallet capabilities remain optional.
 const OPTIONAL_METHODS = [
   'eth_sendTransaction',
   'personal_sign',
@@ -1180,7 +1180,7 @@ function findInstalledProvider(walletId) {
 
 function walletConnectMetadata() {
   const appUrl = canonicalAppUrl();
-  const iconUrl = new URL('favicon.svg', appUrl).href;
+  const iconUrl = new URL('favicon-runner-v2.png', appUrl).href;
 
   return {
     name: 'Base Quest Milestones',
@@ -1266,7 +1266,7 @@ async function getWalletConnectProvider() {
     const { default: EthereumProvider } = await import('@walletconnect/ethereum-provider');
     walletConnectProvider = await EthereumProvider.init({
       projectId,
-      optionalChains: [TARGET_CHAIN_ID],
+      chains: [TARGET_CHAIN_ID],
       methods: REQUIRED_METHODS,
       optionalMethods: OPTIONAL_METHODS,
       events: REQUIRED_EVENTS,
@@ -1365,7 +1365,11 @@ async function connectWalletConnect() {
       .request({ method: 'eth_accounts' })
       .catch(() => []);
 
-    if (existingAccounts?.[0]) {
+    const namespace = provider.session?.namespaces?.eip155;
+    const hasTargetPermission = namespace?.accounts?.some(id =>
+      String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`)) &&
+      namespace?.methods?.includes('eth_sendTransaction');
+    if (existingAccounts?.[0] && hasTargetPermission) {
       return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
     }
 
@@ -1379,7 +1383,7 @@ async function connectWalletConnect() {
   }
 
   const connectPromise = typeof provider.connect === 'function'
-    ? provider.connect()
+    ? provider.connect({ chains: [TARGET_CHAIN_ID] })
     : provider.enable();
 
   try {
@@ -1400,6 +1404,14 @@ async function connectWalletConnect() {
     throw err;
   }
 
+  // Reject an incomplete approval before exposing it as a connected game wallet.
+  const namespace = provider.session?.namespaces?.eip155;
+  if (!namespace?.accounts?.some(id => String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`)) ||
+      !namespace?.methods?.includes('eth_sendTransaction')) {
+    try { await provider.disconnect(); } catch { /* best-effort cleanup */ }
+    if (provider === walletConnectProvider) walletConnectProvider = null;
+    throw new Error(`${CONFIG.chainName} (chain ${TARGET_CHAIN_ID}) was not approved. Open this game in MetaMask's in-app browser and select MetaMask directly, or add/select the network in your wallet before a new WalletConnect pairing.`);
+  }
   return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
 }
 
