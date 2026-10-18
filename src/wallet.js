@@ -27,19 +27,18 @@ const TARGET_CAIP_CHAIN_ID = `eip155:${TARGET_CHAIN_ID}`;
 const WALLETCONNECT_ID = 'walletconnect';
 const BROWSER_WALLET_ID = 'browser';
 
+// These methods are required so a WalletConnect session can add and switch
+// to the game network when MetaMask Mobile does not have it yet.
 const REQUIRED_METHODS = [
   'eth_sendTransaction',
+  'wallet_switchEthereumChain',
+  'wallet_addEthereumChain',
 ];
 
-// Require the game network for a usable WalletConnect session.
-// Additional wallet capabilities remain optional.
 const OPTIONAL_METHODS = [
-  'eth_sendTransaction',
   'personal_sign',
   'eth_signTypedData',
   'eth_signTypedData_v4',
-  'wallet_switchEthereumChain',
-  'wallet_addEthereumChain',
 ];
 
 const REQUIRED_EVENTS = [
@@ -1366,10 +1365,12 @@ async function connectWalletConnect() {
       .catch(() => []);
 
     const namespace = provider.session?.namespaces?.eip155;
-    const hasTargetPermission = namespace?.accounts?.some(id =>
-      String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`)) &&
-      namespace?.methods?.includes('eth_sendTransaction');
-    if (existingAccounts?.[0] && hasTargetPermission) {
+    const hasSetupPermission = namespace?.accounts?.some(id =>
+      String(id).startsWith('eip155:')) &&
+      namespace?.methods?.includes('eth_sendTransaction') &&
+      namespace?.methods?.includes('wallet_addEthereumChain') &&
+      namespace?.methods?.includes('wallet_switchEthereumChain');
+    if (existingAccounts?.[0] && hasSetupPermission) {
       return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
     }
 
@@ -1404,13 +1405,16 @@ async function connectWalletConnect() {
     throw err;
   }
 
-  // Reject an incomplete approval before exposing it as a connected game wallet.
+  // Require an account and the methods needed to add/switch networks. The
+  // target chain itself may be absent until ensureCorrectNetwork adds it.
   const namespace = provider.session?.namespaces?.eip155;
-  if (!namespace?.accounts?.some(id => String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`)) ||
-      !namespace?.methods?.includes('eth_sendTransaction')) {
+  if (!namespace?.accounts?.some(id => String(id).startsWith('eip155:')) ||
+      !namespace?.methods?.includes('eth_sendTransaction') ||
+      !namespace?.methods?.includes('wallet_addEthereumChain') ||
+      !namespace?.methods?.includes('wallet_switchEthereumChain')) {
     try { await provider.disconnect(); } catch { /* best-effort cleanup */ }
     if (provider === walletConnectProvider) walletConnectProvider = null;
-    throw new Error(`${CONFIG.chainName} (chain ${TARGET_CHAIN_ID}) was not approved. Open this game in MetaMask's in-app browser and select MetaMask directly, or add/select the network in your wallet before a new WalletConnect pairing.`);
+    throw new Error(`The wallet did not approve the network setup methods required for ${CONFIG.chainName}. Reconnect WalletConnect and approve network changes.`);
   }
   return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
 }
@@ -1881,8 +1885,12 @@ function approvedWalletConnectChain(provider) {
   if (!namespace) return false;
   const approvedAccounts = Array.isArray(namespace.accounts) ? namespace.accounts : [];
   const approvedMethods = Array.isArray(namespace.methods) ? namespace.methods : [];
-  return approvedAccounts.some((id) => String(id).startsWith(`${TARGET_CAIP_CHAIN_ID}:`))
-    && approvedMethods.includes('eth_sendTransaction');
+  // Do not require the target chain before network setup: it may not exist
+  // in MetaMask Mobile yet. The add/switch requests below establish it.
+  return approvedAccounts.some((id) => String(id).startsWith('eip155:'))
+    && approvedMethods.includes('eth_sendTransaction')
+    && approvedMethods.includes('wallet_addEthereumChain')
+    && approvedMethods.includes('wallet_switchEthereumChain');
 }
 
 async function currentWalletChain(provider) {
@@ -1930,8 +1938,7 @@ async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } 
     }
   };
   const target = normalize(toHexChainId(TARGET_CHAIN_ID));
-  // A WalletConnect pairing can be established without the optional target chain.
-  // The client must never treat that as approval to sign target-chain transactions.
+  // The target chain may not exist in the wallet yet; setup below adds and switches to it.
   if (!approvedWalletConnectChain(activeProvider)) {
     walletState.chainOk = false;
     walletState.signer = null;
@@ -1974,8 +1981,7 @@ async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } 
       assertCurrentConnection();
     };
     let added = false;
-    if (addFirst && (walletState.connectionType !== 'walletconnect' ||
-        activeProvider.session?.namespaces?.eip155?.methods?.includes('wallet_addEthereumChain'))) {
+    if (addFirst) {
       try {
         // EIP-3085 permits adding an already-known chain. Do not depend on a
         // particular wallet returning 4902 before offering BOT configuration.
@@ -1998,12 +2004,6 @@ async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } 
       });
     } catch (switchErr) {
       assertCurrentConnection();
-      // Target-chain session approval was checked above. Add the network only
-      // when this WalletConnect session explicitly permits the add-chain method.
-      if (walletState.connectionType === 'walletconnect' &&
-          !activeProvider.session?.namespaces?.eip155?.methods?.includes('wallet_addEthereumChain')) {
-        throw normalizeRpcError(switchErr);
-      }
       if (!isMissingChainError(switchErr)) throw normalizeRpcError(switchErr);
 
       if (added) throw normalizeRpcError(switchErr, `Network was added but switching failed.`);
