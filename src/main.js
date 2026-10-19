@@ -22,30 +22,32 @@ import {
 function installBrowserIdentity() {
   document.title = 'Base Quest Milestones';
 
-  // Keep SVG as the desktop tab favicon and PNG for mobile/home-screen support.
-  const baseUrl = import.meta.env.BASE_URL || '/';
-  const assetUrl = (name) => `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${name}`;
-  const svgUrl = assetUrl('favicon.svg');
-  const pngUrl = assetUrl('favicon-runner-v2.png');
+  // Version the desktop favicon URL so browsers do not keep displaying an older cached icon.
+  const basePath = import.meta.env.BASE_URL || '/';
+  const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
+  const faviconUrl = `${normalizedBase}favicon-runner-v2.png?v=20261019`;
+  const appleTouchIconUrl = `${normalizedBase}favicon-runner-v2.png`;
 
-  let icon = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+  let icon = document.querySelector('link[rel="icon"]');
   if (!icon) {
     icon = document.createElement('link');
     icon.rel = 'icon';
-    icon.type = 'image/svg+xml';
-    document.head.prepend(icon);
+    document.head.appendChild(icon);
   }
-  icon.href = svgUrl;
+  icon.type = 'image/png';
+  icon.href = faviconUrl;
+  // Do not advertise the source image's large dimensions as a desktop favicon size.
+  icon.removeAttribute('sizes');
 
-  let pngIcon = document.querySelector('link[rel="icon"][type="image/png"]');
-  if (!pngIcon) {
-    pngIcon = document.createElement('link');
-    pngIcon.rel = 'icon';
-    pngIcon.type = 'image/png';
-    pngIcon.sizes = '1254x1254';
-    document.head.appendChild(pngIcon);
+  // Keep the legacy shortcut-icon declaration in sync for desktop browsers that use it.
+  let shortcutIcon = document.querySelector('link[rel="shortcut icon"]');
+  if (!shortcutIcon) {
+    shortcutIcon = document.createElement('link');
+    shortcutIcon.rel = 'shortcut icon';
+    document.head.appendChild(shortcutIcon);
   }
-  pngIcon.href = pngUrl;
+  shortcutIcon.type = 'image/png';
+  shortcutIcon.href = faviconUrl;
 
   let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
   if (!appleIcon) {
@@ -53,7 +55,7 @@ function installBrowserIdentity() {
     appleIcon.rel = 'apple-touch-icon';
     document.head.appendChild(appleIcon);
   }
-  appleIcon.href = pngUrl;
+  appleIcon.href = appleTouchIconUrl;
 
   const ensureMeta = (name, content) => {
     let meta = document.querySelector(`meta[name="${name}"]`);
