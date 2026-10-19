@@ -685,7 +685,7 @@ function updateWalletButtons() {
   disconnectBtn.hidden = !connected;
   connectBtn.disabled = busy;
   disconnectBtn.disabled = busy;
-  networkSwitchBtn.hidden = !connected || walletState.chainOk || walletState.connectionType !== 'injected';
+  networkSwitchBtn.hidden = !connected || walletState.chainOk;
   networkSwitchBtn.disabled = busy;
 
   connectBtn.textContent = connectInProgress ? 'Opening wallet list...' : 'Connect Wallet';
@@ -900,7 +900,7 @@ async function refreshWalletUi() {
     mintedSyncAccount = '';
     mintedSyncPromise = null;
     walletStatus.textContent = walletState.connectionType === 'walletconnect'
-      ? `WalletConnect paired, but ${CONFIG.chainName} was not approved. Connect through a wallet browser that supports ${CONFIG.chainName}.`
+      ? `WalletConnect paired, but ${CONFIG.chainName} is not active. Use Add / Switch network below. If this wallet does not allow network changes over WalletConnect, open the site in its built-in browser and add/select the network there.`
       : `${walletState.walletName || 'Wallet'} connected • ${shortAddress(walletState.account)} • ${CONFIG.chainName} not active. Use Add / Switch network below.`;
     updateStats(game.snapshot());
     return;
