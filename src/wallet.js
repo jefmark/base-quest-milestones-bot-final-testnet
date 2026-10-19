@@ -27,17 +27,15 @@ const TARGET_CAIP_CHAIN_ID = `eip155:${TARGET_CHAIN_ID}`;
 const WALLETCONNECT_ID = 'walletconnect';
 const BROWSER_WALLET_ID = 'browser';
 
-// Only transaction submission is required for a usable game session.
-// Some WalletConnect wallets reject a session when network-management methods
-// are marked required. Request add/switch as optional, then handle unsupported
-// methods explicitly without discarding an otherwise valid wallet connection.
+// These methods are required so a WalletConnect session can add and switch
+// to the game network when MetaMask Mobile does not have it yet.
 const REQUIRED_METHODS = [
   'eth_sendTransaction',
+  'wallet_switchEthereumChain',
+  'wallet_addEthereumChain',
 ];
 
 const OPTIONAL_METHODS = [
-  'wallet_switchEthereumChain',
-  'wallet_addEthereumChain',
   'personal_sign',
   'eth_signTypedData',
   'eth_signTypedData_v4',
@@ -1029,7 +1027,7 @@ export async function restoreWalletSession() {
     // One network request on restoration; rejected requests retain the connected
     // account and can be retried with the existing network button.
     try {
-      await ensureCorrectNetwork({ interactive: true });
+      await ensureCorrectNetwork({ interactive: true, addFirst: true });
     } catch (err) {
       // The wallet remains connected; the existing Add/Switch Network control
       // handles wrong network or provider-specific signer errors interactively.
@@ -1319,10 +1317,7 @@ async function connectWithProvider(provider, label = 'Wallet', type = 'injected'
     walletState.account = account;
 
     attachProviderListeners(provider);
-    // Try switching first; add the chain only when the wallet explicitly says
-    // the target chain is unknown. A network-setup failure must not erase an
-    // otherwise valid WalletConnect pairing/account.
-    await ensureCorrectNetwork({ interactive: true });
+    await ensureCorrectNetwork({ interactive: true, addFirst: true });
 
     await refreshSignerAndContract();
     emitWalletChanged();
@@ -1331,19 +1326,15 @@ async function connectWithProvider(provider, label = 'Wallet', type = 'injected'
     if (connectionRevision !== walletConnectionRevision && walletState.eip1193Provider !== provider) {
       throw normalizeRpcError(err, 'Wallet connection was superseded.');
     }
-    // A wallet can authorize the account while rejecting automatic network
-    // setup. Preserve the selected provider/session and show an explicit retry
-    // path instead of tearing down a valid WalletConnect pairing.
-    if ((type === 'injected' || type === 'walletconnect') &&
-        walletState.account && walletState.eip1193Provider === provider) {
+    // An injected wallet can authorize accounts while rejecting the automatic
+    // network change. Keep its account connected and expose an explicit retry
+    // button instead of making the user think that nothing happened.
+    if (type === 'injected' && walletState.account && walletState.eip1193Provider === provider) {
       walletState.chainOk = false;
       walletState.signer = null;
       walletState.contract = null;
       emitWalletChanged();
-      throw normalizeRpcError(
-        err,
-        `${label} connected, but ${CONFIG.chainName} could not be activated. Use Add / Switch Network or open the site in the wallet browser.`
-      );
+      throw normalizeRpcError(err, `${label} requires ${CONFIG.chainName}.`);
     }
 
     clearProviderListeners();
@@ -1374,12 +1365,12 @@ async function connectWalletConnect() {
       .catch(() => []);
 
     const namespace = provider.session?.namespaces?.eip155;
-    // Reuse a session with an approved account and transaction permission.
-    // Network add/switch methods are optional and are checked only when needed.
-    const hasUsableSession = namespace?.accounts?.some(id =>
+    const hasSetupPermission = namespace?.accounts?.some(id =>
       String(id).startsWith('eip155:')) &&
-      namespace?.methods?.includes('eth_sendTransaction');
-    if (existingAccounts?.[0] && hasUsableSession) {
+      namespace?.methods?.includes('eth_sendTransaction') &&
+      namespace?.methods?.includes('wallet_addEthereumChain') &&
+      namespace?.methods?.includes('wallet_switchEthereumChain');
+    if (existingAccounts?.[0] && hasSetupPermission) {
       return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
     }
 
@@ -1414,15 +1405,16 @@ async function connectWalletConnect() {
     throw err;
   }
 
-  // Require only the account and transaction permission for the session.
-  // A wallet may omit optional add/switch methods; connectWithProvider keeps the
-  // pairing alive and the network button reports the available fallback.
+  // Require an account and the methods needed to add/switch networks. The
+  // target chain itself may be absent until ensureCorrectNetwork adds it.
   const namespace = provider.session?.namespaces?.eip155;
   if (!namespace?.accounts?.some(id => String(id).startsWith('eip155:')) ||
-      !namespace?.methods?.includes('eth_sendTransaction')) {
+      !namespace?.methods?.includes('eth_sendTransaction') ||
+      !namespace?.methods?.includes('wallet_addEthereumChain') ||
+      !namespace?.methods?.includes('wallet_switchEthereumChain')) {
     try { await provider.disconnect(); } catch { /* best-effort cleanup */ }
     if (provider === walletConnectProvider) walletConnectProvider = null;
-    throw new Error('The wallet did not approve an EVM account and transaction permission. Reconnect and approve the connection.');
+    throw new Error(`The wallet did not approve the network setup methods required for ${CONFIG.chainName}. Reconnect WalletConnect and approve network changes.`);
   }
   return connectWithProvider(provider, 'WalletConnect', 'walletconnect');
 }
@@ -1864,6 +1856,10 @@ export function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function walletChainErrorCode(err) {
+  return err?.code ?? err?.data?.code ?? err?.data?.originalError?.code ?? err?.cause?.code;
+}
+
 function isMissingChainError(err) {
   // Wallets may wrap 4902 inside -32603/data/originalError/cause.
   const queue = [err], seen = new Set();
@@ -1891,10 +1887,10 @@ function approvedWalletConnectChain(provider) {
   const approvedMethods = Array.isArray(namespace.methods) ? namespace.methods : [];
   // Do not require the target chain before network setup: it may not exist
   // in MetaMask Mobile yet. The add/switch requests below establish it.
-  // add/switch are optional WalletConnect methods, not prerequisites for an
-  // account session. ensureCorrectNetworkNow handles their absence explicitly.
   return approvedAccounts.some((id) => String(id).startsWith('eip155:'))
-    && approvedMethods.includes('eth_sendTransaction');
+    && approvedMethods.includes('eth_sendTransaction')
+    && approvedMethods.includes('wallet_addEthereumChain')
+    && approvedMethods.includes('wallet_switchEthereumChain');
 }
 
 async function currentWalletChain(provider) {
@@ -1928,7 +1924,7 @@ export async function ensureCorrectNetwork(options = {}) {
   return task.promise;
 }
 
-async function ensureCorrectNetworkNow({ interactive = true } = {}) {
+async function ensureCorrectNetworkNow({ interactive = true, addFirst = false } = {}) {
   const activeProvider = walletState.eip1193Provider;
   if (!activeProvider?.request) {
     walletState.chainOk = false;
@@ -1942,14 +1938,14 @@ async function ensureCorrectNetworkNow({ interactive = true } = {}) {
     }
   };
   const target = normalize(toHexChainId(TARGET_CHAIN_ID));
-
+  // The target chain may not exist in the wallet yet; setup below adds and switches to it.
   if (!approvedWalletConnectChain(activeProvider)) {
     walletState.chainOk = false;
     walletState.signer = null;
     walletState.contract = null;
     if (interactive) throw new Error(
-      `${CONFIG.chainName} session is missing an approved EVM account or transaction permission. ` +
-      'Reconnect the wallet and approve the connection.'
+      `${CONFIG.chainName} was not approved by the connected WalletConnect wallet. ` +
+      `Choose a wallet supporting ${CONFIG.chainName}, or open the game inside a supported wallet browser.`
     );
     return false;
   }
@@ -1963,96 +1959,71 @@ async function ensureCorrectNetworkNow({ interactive = true } = {}) {
     return false;
   }
 
-  const addNetwork = async () => {
-    await activeProvider.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: target,
-        chainName: CONFIG.chainName,
-        nativeCurrency: {
-          name: CONFIG.nativeCurrencyName,
-          symbol: CONFIG.nativeCurrencySymbol,
-          decimals: CONFIG.nativeCurrencyDecimals,
-        },
-        rpcUrls: [CONFIG.rpcUrl],
-        blockExplorerUrls: [CONFIG.explorerUrl],
-      }],
-    });
-    assertCurrentConnection();
-  };
-
-  const switchNetwork = async () => {
-    await activeProvider.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: target }],
-    });
-    assertCurrentConnection();
-  };
-
-  const unsupportedMethod = (error) => {
-    const queue = [error];
-    const seen = new Set();
-    while (queue.length && seen.size < 20) {
-      const item = queue.shift();
-      if (!item || (typeof item !== 'object' && typeof item !== 'function') || seen.has(item)) continue;
-      seen.add(item);
-      const code = String(item.code ?? '');
-      const message = normalize(item.message || item.shortMessage || item.data?.message || '');
-      if (code === '4200' || code === '-32601' ||
-          /method not found|method not supported|unsupported method|method.{0,25}not approved|not authorized to use this method/.test(message)) {
-        return true;
-      }
-      queue.push(item.data, item.originalError, item.cause, item.error);
-    }
-    return false;
-  };
-
   if (current !== target) {
     walletState.chainOk = false;
     walletState.signer = null;
     walletState.contract = null;
-
-    // First try switching. Only an explicit unknown-chain response triggers add.
-    try {
-      await switchNetwork();
-    } catch (switchError) {
+    const addNetwork = async () => {
+      await activeProvider.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: target,
+          chainName: CONFIG.chainName,
+          nativeCurrency: {
+            name: CONFIG.nativeCurrencyName,
+            symbol: CONFIG.nativeCurrencySymbol,
+            decimals: CONFIG.nativeCurrencyDecimals,
+          },
+          rpcUrls: [CONFIG.rpcUrl],
+          blockExplorerUrls: [CONFIG.explorerUrl],
+        }],
+      });
       assertCurrentConnection();
-      if (!isMissingChainError(switchError)) {
-        if (unsupportedMethod(switchError)) {
-          throw new Error(
-            `This wallet connection does not allow switching to ${CONFIG.chainName}. ` +
-            `Open the game in the wallet's built-in browser, or add/select chain ${TARGET_CHAIN_ID} manually using ${CONFIG.rpcUrl}.`
-          );
-        }
-        throw normalizeRpcError(switchError, `Could not switch to ${CONFIG.chainName}.`);
+    };
+    let added = false;
+    if (addFirst) {
+      try {
+        // EIP-3085 permits adding an already-known chain. Do not depend on a
+        // particular wallet returning 4902 before offering BOT configuration.
+        await addNetwork();
+        added = true;
+      } catch (error) {
+        // Some wallets implement switch but not add. Only that precise case
+        // may fall through; user rejection and pending requests must stop.
+        const code = String(walletChainErrorCode(error) ?? '');
+        if (code !== '4200' && code !== '-32601') throw normalizeRpcError(error,
+          `Could not add ${CONFIG.chainName}. Add chain ${TARGET_CHAIN_ID} manually using ${CONFIG.rpcUrl}.`);
       }
+      current = await currentWalletChain(activeProvider);
+      assertCurrentConnection();
+    }
+    try {
+      if (current !== target) await activeProvider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: target }],
+      });
+    } catch (switchErr) {
+      assertCurrentConnection();
+      if (!isMissingChainError(switchErr)) throw normalizeRpcError(switchErr);
 
-      // The chain is confirmed missing: now request it once, then switch to it.
+      if (added) throw normalizeRpcError(switchErr, `Network was added but switching failed.`);
       try {
         await addNetwork();
-      } catch (addError) {
-        if (unsupportedMethod(addError)) {
-          throw new Error(
-            `This wallet connection does not allow adding ${CONFIG.chainName}. ` +
-            `Open the game in the wallet's built-in browser, or add chain ${TARGET_CHAIN_ID} manually using ${CONFIG.rpcUrl}.`
-          );
-        }
-        throw normalizeRpcError(addError, `Could not add ${CONFIG.chainName}.`);
+      } catch (addErr) {
+        throw normalizeRpcError(addErr, `Could not add ${CONFIG.chainName}.`);
       }
 
+      // EIP-3085 does not require automatic switching after network addition.
       current = await currentWalletChain(activeProvider);
       assertCurrentConnection();
       if (current !== target) {
         try {
-          await switchNetwork();
-        } catch (secondSwitchError) {
-          if (unsupportedMethod(secondSwitchError)) {
-            throw new Error(
-              `${CONFIG.chainName} was added, but this wallet connection cannot switch to it. ` +
-              `Select chain ${TARGET_CHAIN_ID} in the wallet and retry.`
-            );
-          }
-          throw normalizeRpcError(secondSwitchError, `${CONFIG.chainName} was added, but switching to it failed.`);
+          await activeProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: target }],
+          });
+        } catch (secondErr) {
+          throw normalizeRpcError(secondErr, `Network was added, but switching to ${CONFIG.chainName} failed.`);
         }
       }
     }
@@ -2093,12 +2064,13 @@ async function ensureCorrectNetworkNow({ interactive = true } = {}) {
   createContractIfReady();
   return true;
 }
+
 export async function requestBotNetwork() {
   if (!walletState.account || !walletState.eip1193Provider?.request) {
     throw new Error('Connect a wallet first.');
   }
   try {
-    const result = await ensureCorrectNetwork({ interactive: true });
+    const result = await ensureCorrectNetwork({ interactive: true, addFirst: true });
     emitWalletChanged();
     return result;
   } catch (err) {
