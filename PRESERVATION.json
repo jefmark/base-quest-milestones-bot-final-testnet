@@ -15,14 +15,14 @@
   },
   {
     "file": "src/wallet.js",
-    "sha256": "ade477c5edb415c11fe02e6c4c60257742024560ce5ff2746d6facc113a07fa0",
+    "sha256": "721a6c99eacdf7597ea461a21eec4c43a6900b504b5aad50054472234e96f6b5",
     "unchanged": false,
     "previous_sha256": "a862132a524f5f53ab2bdeffa794a6cb89e63251d111c35227deade0c8a3ef5f",
     "reason": "Require target-chain WalletConnect authorization and use the existing runner PNG for mobile browser icons. No contract or gameplay changes."
   },
   {
     "file": "src/main.js",
-    "sha256": "887d09b1be23195422fd25a556ca418b0b8070ad6cdeadf612e1a2e21fbd7551",
+    "sha256": "e9bb356bce5ae76e9d63e01dc0506a015e259053a7076dc2b41bcc58e84ba547",
     "unchanged": false,
     "previous_sha256": "662612e3a380e604892590a21315fdea6f461ed5c3c93c8dac8943882db254ad",
     "reason": "Require target-chain WalletConnect authorization and use the existing runner PNG for mobile browser icons. No contract or gameplay changes."
